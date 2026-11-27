@@ -1,0 +1,35 @@
+outputs:
+  direct:
+    - name: private
+      behavior: domain
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/private.txt
+    - name: icloud
+      behavior: domain
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/icloud.txt
+    - name: apple
+      behavior: domain
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/apple.txt
+    - name: direct
+      behavior: domain
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt
+    - name: lancidr
+      behavior: ipcidr
+      no-resolve: true
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/lancidr.txt
+    - name: cncidr
+      behavior: ipcidr
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt
+  proxy:
+    - name: google
+      behavior: domain
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/google.txt
+    - name: proxy
+      behavior: domain
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/proxy.txt
+    - name: telegramcidr
+      behavior: ipcidr
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/telegramcidr.txt
+  reject:
+    - name: reject
+      behavior: domain
+      url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/reject.txt

@@ -1,0 +1,66 @@
+name: Update Clash rules
+
+on:
+  schedule:
+    - cron: '10 0 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/update-rules.yml'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'sources.yaml'
+      - 'requirements.txt'
+      - 'clash-example.yaml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-clash-rules-default-branch
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run offline tests
+        run: python -m unittest discover -s tests -v
+      - name: Generate and validate rules
+        run: |
+          python scripts/update_rules.py
+          python scripts/update_rules.py --check
+      - name: Verify with Mihomo v1.19.34
+        run: |
+          archive="$RUNNER_TEMP/mihomo.gz"
+          curl --fail --silent --show-error --location --retry 3 --max-time 120 \
+            'https://github.com/MetaCubeX/mihomo/releases/download/v1.19.34/mihomo-linux-amd64-v1-v1.19.34.gz' \
+            --output "$archive"
+          printf '%s  %s\n' '0c07340a01408d033dda4088ea2a4c1e4d82aeed7b2f84f7c046e93b6ff3290c' "$archive" | sha256sum --check
+          gzip -dc "$archive" > "$RUNNER_TEMP/mihomo"
+          chmod +x "$RUNNER_TEMP/mihomo"
+          python scripts/verify_mihomo.py "$RUNNER_TEMP/mihomo"
+      - name: Commit and push changed rules
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git add -- rules/direct.yaml rules/proxy.yaml rules/reject.yaml
+          if git diff --cached --quiet; then
+            echo 'Rule files are unchanged.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(rules): update generated rule sets'
+          git push origin "HEAD:refs/heads/$DEFAULT_BRANCH"
