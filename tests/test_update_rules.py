@@ -81,7 +81,22 @@ class RuleTests(unittest.TestCase):
             with patch.object(updater, "download", return_value=reordered):
                 updater.publish(updater.collect_rules(items), directory)
             self.assertEqual(snapshot, {p.name: p.read_bytes() for p in directory.iterdir()})
-            self.assertEqual(updater.validate_output(directory / "direct.yaml"), 2)
+            self.assertEqual(len(updater.read_output(directory / "direct.yaml")), 2)
+            self.assertEqual(snapshot["all.yaml"], snapshot["direct.yaml"])
+
+    def test_combined_provider_includes_every_category_once(self):
+        outputs = {
+            "direct": ["DOMAIN,a.test", "DOMAIN,b.test"],
+            "proxy": ["DOMAIN,b.test", "IP-CIDR,91.108.4.0/22"],
+            "reject": ["DOMAIN,c.test"],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            updater.publish(outputs, directory)
+            self.assertEqual(
+                updater.read_output(directory / "all.yaml"),
+                ["DOMAIN,a.test", "DOMAIN,b.test", "DOMAIN,c.test", "IP-CIDR,91.108.4.0/22"],
+            )
 
     def test_failed_sources_leave_all_previous_outputs_untouched(self):
         valid = "payload: [example.com]"
@@ -89,14 +104,14 @@ class RuleTests(unittest.TestCase):
         for failure in failures:
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as tmp:
                 output = Path(tmp)
-                for category in updater.CATEGORIES:
+                for category in updater.PROVIDERS:
                     (output / f"{category}.yaml").write_text(f"previous {category}")
                 argv = ["update_rules.py", "--output-dir", tmp]
                 responses = [valid] * 4 + ["payload: [192.168.0.0/16]"] * 2 + [valid] * 2 + ["payload: [91.108.4.0/22]", failure]
                 with patch.object(updater.sys, "argv", argv), patch.object(updater, "download", side_effect=responses):
                     with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                         self.assertEqual(updater.main(), 1)
-                for category in updater.CATEGORIES:
+                for category in updater.PROVIDERS:
                     self.assertEqual((output / f"{category}.yaml").read_text(), f"previous {category}")
 
     def test_validate_before_replace(self):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the example and load all three generated providers with Mihomo."""
+"""Check the example and load the generated providers with Mihomo."""
 
 import argparse
 import http.client
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from update_rules import CATEGORIES, ROOT, validate_output
+from update_rules import PROVIDERS, ROOT, read_output
 
 
 class LocalController(http.client.HTTPConnection):
@@ -51,16 +51,18 @@ def verify(binary):
         subprocess.run([*command, "-t"], check=True, timeout=30)
 
         expected = {}
-        for category in CATEGORIES:
-            source = ROOT / "rules" / f"{category}.yaml"
-            expected[category] = validate_output(source)
-            provider = config["rule-providers"][category]
-            provider["type"] = "file"
-            provider.pop("url")
-            provider.pop("interval")
-            target = home / provider["path"]
+        for name in PROVIDERS:
+            source = ROOT / "rules" / f"{name}.yaml"
+            expected[name] = len(read_output(source))
+            target = home / "ruleset" / f"{name}.yaml"
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
+            config["rule-providers"][name] = {
+                "type": "file",
+                "behavior": "classical",
+                "format": "yaml",
+                "path": str(target.relative_to(home)),
+            }
 
         controller = home / "controller.sock"
         config["external-controller-unix"] = str(controller)

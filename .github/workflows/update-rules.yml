@@ -55,7 +55,7 @@ jobs:
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          git add -- rules/direct.yaml rules/proxy.yaml rules/reject.yaml
+          git add -- rules/direct.yaml rules/proxy.yaml rules/reject.yaml rules/all.yaml
           if git diff --cached --quiet; then
             echo 'Rule files are unchanged.'
             exit 0

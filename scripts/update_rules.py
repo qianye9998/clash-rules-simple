@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge configured Clash providers into three classical YAML rule sets."""
+"""Generate classical YAML rule sets by category and as a combined list."""
 
 import argparse
 import ipaddress
@@ -20,6 +20,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CATEGORIES = ("direct", "proxy", "reject")
+PROVIDERS = (*CATEGORIES, "all")
 DOMAIN = re.compile(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*")
 TRANSIENT_HTTP = {408, 429, 500, 502, 503, 504}
 TIMEOUT = 30
@@ -175,27 +176,32 @@ def collect_rules(sources):
     return outputs
 
 
-def validate_output(path):
+def read_output(path):
     payload = parse_payload(path.read_text(encoding="utf-8"))
     if any(a >= b for a, b in zip(payload, payload[1:])):
         raise ValueError(f"{path}: expected sorted, unique rules")
     for rule in payload:
         validate_classical(rule)
-    return len(payload)
+    return payload
+
+
+def combined_rules(outputs):
+    return sorted({rule for category in CATEGORIES for rule in outputs[category]})
 
 
 def publish(outputs, directory):
     directory.mkdir(parents=True, exist_ok=True)
-    filenames = [f"{category}.yaml" for category in CATEGORIES]
+    outputs = {**outputs, "all": combined_rules(outputs)}
+    filenames = [f"{name}.yaml" for name in PROVIDERS]
     with tempfile.TemporaryDirectory(prefix=".update-", dir=directory) as tmp:
         staging = Path(tmp)
-        for category, filename in zip(CATEGORIES, filenames):
-            text = yaml.dump({"payload": outputs[category]}, Dumper=Dumper, allow_unicode=True)
+        for name, filename in zip(PROVIDERS, filenames):
+            text = yaml.dump({"payload": outputs[name]}, Dumper=Dumper, allow_unicode=True)
             path = staging / filename
             path.write_text(text, encoding="utf-8", newline="\n")
-            validate_output(path)
+            read_output(path)
 
-        # Keep a backup until every replacement succeeds. Git commits the three together.
+        # Keep a backup until every replacement succeeds. Git commits the outputs together.
         backups = {}
         for name in filenames:
             target = directory / name
@@ -224,9 +230,13 @@ def main():
     args = parser.parse_args()
     try:
         if args.check:
-            for category in CATEGORIES:
-                path = args.output_dir / f"{category}.yaml"
-                print(f"{path.name}: {validate_output(path):,} valid rules")
+            outputs = {}
+            for name in PROVIDERS:
+                path = args.output_dir / f"{name}.yaml"
+                outputs[name] = read_output(path)
+                print(f"{path.name}: {len(outputs[name]):,} valid rules")
+            if outputs["all"] != combined_rules(outputs):
+                raise ValueError("all.yaml must match the union of direct, proxy and reject")
         else:
             publish(collect_rules(load_sources(args.sources)), args.output_dir)
     except (OSError, ValueError, yaml.YAMLError) as error:

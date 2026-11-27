@@ -9,12 +9,29 @@
 | `direct` | 私有域名、Apple/iCloud、国内域名、局域网和国内 IP | [direct.yaml](https://raw.githubusercontent.com/qianye9998/clash-rules-simple/main/rules/direct.yaml) |
 | `proxy` | Google、其他代理域名和 Telegram IP | [proxy.yaml](https://raw.githubusercontent.com/qianye9998/clash-rules-simple/main/rules/proxy.yaml) |
 | `reject` | 广告与跟踪域名 | [reject.yaml](https://raw.githubusercontent.com/qianye9998/clash-rules-simple/main/rules/reject.yaml) |
+| `all` | 合并直连、代理、拦截条目，供同一个策略匹配 | [all.yaml](https://raw.githubusercontent.com/qianye9998/clash-rules-simple/main/rules/all.yaml) |
 
-三份规则均使用 `behavior: classical` 和 `format: yaml`。把 [clash-example.yaml](clash-example.yaml) 中的 `rule-providers` 和 `rules` 合并到 Mihomo 配置，并将 `PROXY` 改为已有的代理策略组名称。客户端示例每 86,400 秒检查一次更新。
+所有规则集均使用 `behavior: classical` 和 `format: yaml`。按类别分流时，将 `rule-providers` 和 `rules` 合并到 Mihomo 配置，并将 `PROXY` 改为已有的代理策略组名称。客户端示例每 86,400 秒检查一次更新。见 [clash-example.yaml](clash-example.yaml)。
 
 匹配顺序为 **基础局域网直连 → 拦截 → 代理 → 直连 → 默认代理**。例如域名同时出现在直连与代理文件中时走代理，匹配广告规则时优先拦截。每个文件独立去重，跨文件重叠留给客户端按顺序处理。启用 DNS 解析时，国内与 Telegram 的 IP 规则也能匹配域名解析出的地址。局域网网段规则使用 `no-resolve`，请保留 `RULE-SET,direct,DIRECT` 的写法。
 
-合并后客户端每轮只需拉取三个文件。规则仍由内核逐条匹配，加载成本取决于规则总量和类型。
+### 单一规则集
+
+`all.yaml` 对三类条目合并去重。Mihomo 用引用它的 `RULE-SET` 规则决定整份规则集的动作。下面的配置将所有命中连接交给 `PROXY` 策略组。
+
+```yaml
+rule-providers:
+  all:
+    type: http
+    behavior: classical
+    format: yaml
+    url: https://raw.githubusercontent.com/qianye9998/clash-rules-simple/main/rules/all.yaml
+    path: ./ruleset/simple/all.yaml
+    interval: 86400
+
+rules:
+  - RULE-SET,all,PROXY
+```
 
 ## 更新和验证
 
