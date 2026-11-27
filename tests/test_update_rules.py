@@ -99,7 +99,7 @@ class RuleTests(unittest.TestCase):
             )
 
     def test_custom_direct_template_and_merge(self):
-        template = updater.ROOT / "custom" / "direct.yaml"
+        template = FIXTURES / "custom-direct.yaml"
         self.assertEqual(updater.read_custom_direct(template), set())
         with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()):
             custom = Path(tmp) / "direct.yaml"

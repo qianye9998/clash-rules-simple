@@ -575,6 +575,7 @@ payload:
 - DOMAIN,xp.apple.com
 - DOMAIN,xtratime.qcomgeo2.com
 - DOMAIN,xz.pphimalayanrt.com
+- DOMAIN-KEYWORD,cf000
 - DOMAIN-SUFFIX,0.zone
 - DOMAIN-SUFFIX,00.net
 - DOMAIN-SUFFIX,000.link

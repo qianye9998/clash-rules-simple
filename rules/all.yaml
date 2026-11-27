@@ -1347,6 +1347,7 @@ payload:
 - DOMAIN,zeenews-fonts.s3.amazonaws.com
 - DOMAIN,zftksc.cdn-settings.appsflyersdk.com
 - DOMAIN,zftksc.launches.appsflyersdk.com
+- DOMAIN-KEYWORD,cf000
 - DOMAIN-SUFFIX,0.avmarket.rs
 - DOMAIN-SUFFIX,0.jump.shinyalto.pro
 - DOMAIN-SUFFIX,0.lift.openhorse.me
