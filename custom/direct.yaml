@@ -1,10 +1,17 @@
-# 每行一条规则。启用示例时删掉行首的「# 」，再换成自己的域名或网段。
+# 每行一条规则。启用示例时删掉行首的「# 」，再替换示例内容。
 payload:
   # 精确匹配这个域名
   # - DOMAIN,portal.example.com
 
   # 匹配 example.net 和它的所有子域名
   # - DOMAIN-SUFFIX,example.net
+
+  # 匹配域名中任意位置包含 example-brand 的网站
+  # - DOMAIN-KEYWORD,example-brand
+
+  # 匹配 api-east.example.net、api-west.example.net 等域名
+  # * 匹配零个或多个字符，? 匹配一个字符
+  # - DOMAIN-WILDCARD,api-*.example.net
 
   # 匹配 IPv4 网段。no-resolve 表示匹配时不主动做 DNS 解析。
   # - IP-CIDR,192.0.2.0/24,no-resolve

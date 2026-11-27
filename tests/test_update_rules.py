@@ -107,7 +107,9 @@ class RuleTests(unittest.TestCase):
             text = template.read_text(encoding="utf-8").replace("  # - ", "  - ")
             custom.write_text(text, encoding="utf-8")
             custom_rules = updater.read_custom_direct(custom)
-            self.assertEqual(len(custom_rules), 4)
+            self.assertEqual(len(custom_rules), 6)
+            self.assertIn("DOMAIN-KEYWORD,example-brand", custom_rules)
+            self.assertIn("DOMAIN-WILDCARD,api-*.example.net", custom_rules)
             duplicate = "DOMAIN,portal.example.com"
             upstream = {"direct": [duplicate], "proxy": ["DOMAIN,proxy.test"], "reject": ["DOMAIN,ads.test"]}
             argv = ["update_rules.py", "--output-dir", str(output), "--custom-direct", str(custom)]

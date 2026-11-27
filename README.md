@@ -17,7 +17,10 @@
 
 ### 自定义直连
 
-在 GitHub 上编辑 [`custom/direct.yaml`](https://github.com/qianye9998/clash-rules-simple/edit/main/custom/direct.yaml)。文件内有默认注释掉的精确域名、域名后缀、IPv4 和 IPv6 示例。删掉示例行首的 `# `，再填入自己的域名或网段即可。每条规则占一行，使用 `DOMAIN,portal.example.com` 或 `DOMAIN-SUFFIX,example.net` 这类写法，策略由客户端的 `RULE-SET,direct,DIRECT` 指定。
+文件内有默认注释掉的精确域名、域名后缀、模糊匹配和 IP 网段示例。删掉示例行首的 `# `，再替换示例内容。每条规则占一行，策略由客户端的 `RULE-SET,direct,DIRECT` 指定。[在 GitHub 上编辑 `custom/direct.yaml`](https://github.com/qianye9998/clash-rules-simple/edit/main/custom/direct.yaml)
+
+- `DOMAIN-KEYWORD,example-brand` 匹配域名中任意位置包含 `example-brand` 的网站。
+- `DOMAIN-WILDCARD,api-*.example.net` 匹配 `api-east.example.net` 等域名。`*` 匹配零个或多个字符，`?` 匹配一个字符。
 
 提交到 `main` 后，Actions 会自动合并并去重，更新 `rules/direct.yaml` 和 `rules/all.yaml`。客户端继续使用原来的拉取地址。自定义条目使用 `direct` 的分流优先级，同时命中 `reject` 或 `proxy` 时，靠前的规则优先。自定义文件和生成结果都随公开仓库发布。
 

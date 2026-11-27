@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CATEGORIES = ("direct", "proxy", "reject")
 PROVIDERS = (*CATEGORIES, "all")
 DOMAIN = re.compile(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*")
+DOMAIN_WILDCARD = re.compile(r"[A-Za-z0-9_*?-]+(?:\.[A-Za-z0-9_*?-]+)*")
 TRANSIENT_HTTP = {408, 429, 500, 502, 503, 504}
 TIMEOUT = 30
 ATTEMPTS = 3
@@ -127,8 +128,11 @@ def validate_classical(rule):
     if len(parts) < 2 or not parts[1] or parts[1] != parts[1].strip():
         raise ValueError(f"invalid classical rule: {rule!r}")
     kind, value, *params = parts
-    if kind in ("DOMAIN", "DOMAIN-SUFFIX"):
+    if kind in ("DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD"):
         if params or not DOMAIN.fullmatch(value):
+            raise ValueError(f"invalid {kind} rule: {rule!r}")
+    elif kind == "DOMAIN-WILDCARD":
+        if params or not DOMAIN_WILDCARD.fullmatch(value):
             raise ValueError(f"invalid {kind} rule: {rule!r}")
     elif kind in ("IP-CIDR", "IP-CIDR6"):
         expected_version = 4 if kind == "IP-CIDR" else 6
