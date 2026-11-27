@@ -101,12 +101,14 @@ def download(url):
     raise AssertionError("download attempts exhausted")
 
 
-def parse_payload(text):
+def parse_payload(text, *, allow_empty=False):
     data = load_yaml(text)
     if not isinstance(data, dict) or set(data) != {"payload"}:
         raise ValueError("expected a YAML mapping containing only payload")
     payload = data["payload"]
-    if not isinstance(payload, list) or not payload:
+    if payload is None and allow_empty:
+        return []
+    if not isinstance(payload, list) or (not payload and not allow_empty):
         raise ValueError("payload must be a nonempty list")
     if any(not isinstance(item, str) or not item or item != item.strip() or not item.isprintable() for item in payload):
         raise ValueError("payload entries must be nonempty printable strings without surrounding whitespace")
@@ -138,6 +140,20 @@ def validate_classical(rule):
     else:
         raise ValueError(f"unsupported classical rule type: {kind!r}")
     return rule
+
+
+def read_custom_direct(path):
+    try:
+        payload = parse_payload(path.read_text(encoding="utf-8"), allow_empty=True)
+        rules = set()
+        for index, rule in enumerate(payload, 1):
+            try:
+                rules.add(validate_classical(rule))
+            except ValueError as error:
+                raise ValueError(f"payload entry {index}: {error}") from error
+        return rules
+    except (OSError, ValueError, yaml.YAMLError) as error:
+        raise ValueError(f"{path}: {error}") from error
 
 
 def convert_rule(item, source):
@@ -225,10 +241,12 @@ def publish(outputs, directory):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sources", type=Path, default=ROOT / "sources.yaml")
+    parser.add_argument("--custom-direct", type=Path, default=ROOT / "custom" / "direct.yaml")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "rules")
     parser.add_argument("--check", action="store_true", help="validate existing files without downloading")
     args = parser.parse_args()
     try:
+        custom = read_custom_direct(args.custom_direct)
         if args.check:
             outputs = {}
             for name in PROVIDERS:
@@ -237,8 +255,13 @@ def main():
                 print(f"{path.name}: {len(outputs[name]):,} valid rules")
             if outputs["all"] != combined_rules(outputs):
                 raise ValueError("all.yaml must match the union of direct, proxy and reject")
+            if not custom.issubset(outputs["direct"]):
+                raise ValueError("direct.yaml is missing custom rules; regenerate the outputs")
         else:
-            publish(collect_rules(load_sources(args.sources)), args.output_dir)
+            outputs = collect_rules(load_sources(args.sources))
+            outputs["direct"] = sorted(custom.union(outputs["direct"]))
+            print(f"direct/custom: {len(custom):,} custom rules; {len(outputs['direct']):,} total", flush=True)
+            publish(outputs, args.output_dir)
     except (OSError, ValueError, yaml.YAMLError) as error:
         print(f"update-rules: {error}", file=sys.stderr)
         return 1

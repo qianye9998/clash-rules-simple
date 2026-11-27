@@ -10,6 +10,7 @@ on:
       - 'scripts/**'
       - 'tests/**'
       - 'sources.yaml'
+      - 'custom/direct.yaml'
       - 'requirements.txt'
       - 'clash-example.yaml'
 

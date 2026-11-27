@@ -15,6 +15,12 @@
 
 匹配顺序为 **基础局域网直连 → 拦截 → 代理 → 直连 → 默认代理**。例如域名同时出现在直连与代理文件中时走代理，匹配广告规则时优先拦截。每个文件独立去重，跨文件重叠留给客户端按顺序处理。启用 DNS 解析时，国内与 Telegram 的 IP 规则也能匹配域名解析出的地址。局域网网段规则使用 `no-resolve`，请保留 `RULE-SET,direct,DIRECT` 的写法。
 
+### 自定义直连
+
+在 GitHub 上编辑 [`custom/direct.yaml`](https://github.com/qianye9998/clash-rules-simple/edit/main/custom/direct.yaml)。文件内有默认注释掉的精确域名、域名后缀、IPv4 和 IPv6 示例。删掉示例行首的 `# `，再填入自己的域名或网段即可。每条规则占一行，使用 `DOMAIN,portal.example.com` 或 `DOMAIN-SUFFIX,example.net` 这类写法，策略由客户端的 `RULE-SET,direct,DIRECT` 指定。
+
+提交到 `main` 后，Actions 会自动合并并去重，更新 `rules/direct.yaml` 和 `rules/all.yaml`。客户端继续使用原来的拉取地址。自定义条目使用 `direct` 的分流优先级，同时命中 `reject` 或 `proxy` 时，靠前的规则优先。自定义文件和生成结果都随公开仓库发布。
+
 ### 单一规则集
 
 `all.yaml` 对三类条目合并去重。Mihomo 用引用它的 `RULE-SET` 规则决定整份规则集的动作。下面的配置将所有命中连接交给 `PROXY` 策略组。

@@ -98,6 +98,34 @@ class RuleTests(unittest.TestCase):
                 ["DOMAIN,a.test", "DOMAIN,b.test", "DOMAIN,c.test", "IP-CIDR,91.108.4.0/22"],
             )
 
+    def test_custom_direct_template_and_merge(self):
+        template = updater.ROOT / "custom" / "direct.yaml"
+        self.assertEqual(updater.read_custom_direct(template), set())
+        with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()):
+            custom = Path(tmp) / "direct.yaml"
+            output = Path(tmp) / "rules"
+            text = template.read_text(encoding="utf-8").replace("  # - ", "  - ")
+            custom.write_text(text, encoding="utf-8")
+            custom_rules = updater.read_custom_direct(custom)
+            self.assertEqual(len(custom_rules), 4)
+            duplicate = "DOMAIN,portal.example.com"
+            upstream = {"direct": [duplicate], "proxy": ["DOMAIN,proxy.test"], "reject": ["DOMAIN,ads.test"]}
+            argv = ["update_rules.py", "--output-dir", str(output), "--custom-direct", str(custom)]
+            with patch.object(updater, "collect_rules", return_value=upstream), patch.object(updater.sys, "argv", argv):
+                self.assertEqual(updater.main(), 0)
+            self.assertEqual(updater.read_output(output / "direct.yaml"), sorted(custom_rules))
+            self.assertEqual(updater.read_output(output / "proxy.yaml"), upstream["proxy"])
+            self.assertEqual(updater.read_output(output / "reject.yaml"), upstream["reject"])
+            self.assertTrue(custom_rules.issubset(updater.read_output(output / "all.yaml")))
+
+            custom.write_text("payload:\n  - DOMAIN,example.com,DIRECT\n", encoding="utf-8")
+            with patch.object(updater, "collect_rules") as collect, patch.object(updater.sys, "argv", argv):
+                with redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(updater.main(), 1)
+                collect.assert_not_called()
+            self.assertIn(f"{custom}: payload entry 1", errors.getvalue())
+            self.assertEqual(updater.read_output(output / "direct.yaml"), sorted(custom_rules))
+
     def test_failed_sources_leave_all_previous_outputs_untouched(self):
         valid = "payload: [example.com]"
         failures = (URLError("offline"), "payload: []", "payload: ['*.example.com']")
